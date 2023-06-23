@@ -3,7 +3,7 @@ import { Configuration, OpenAIApi } from "openai";
 var trending = "";
 
 (async () => {
-    fetch("http://localhost:3000").then(async response => {
+    fetch("http://localhost:3000/trending").then(async response => {
         ({ trending } = await response.json());
     }).catch(err => {
         console.log(err)
