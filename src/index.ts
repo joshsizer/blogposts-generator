@@ -1,6 +1,7 @@
 import { Configuration, OpenAIApi } from "openai";
 import { chromium } from 'playwright';
 import { exit } from "process";
+import crypto from "crypto";
 import GhostAdminAPI from "@tryghost/admin-api";
 
 const OPENAI_API_KEY: string = process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY as string : ""
