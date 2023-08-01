@@ -1,137 +1,152 @@
 import { Configuration, OpenAIApi } from "openai";
-import { chromium } from 'playwright';
+import { chromium } from "playwright";
 import { exit } from "process";
 import crypto from "crypto";
 import GhostAdminAPI from "@tryghost/admin-api";
 
-const OPENAI_API_KEY: string = process.env.OPENAI_API_KEY ? process.env.OPENAI_API_KEY as string : ""
-const OPENAI_MODEL: string = process.env.OPENAI_MODEL ? process.env.OPENAI_MODEL as string : "gpt-3.5-turbo"
-const GHOST_ADMIN_API_KEY: string = process.env.GHOST_ADMIN_API_KEY ? process.env.GHOST_ADMIN_API_KEY as string : ""
-const GHOST_URL: string = process.env.GHOST_URL ? process.env.GHOST_URL as string : ""
-const GHOST_AUTHOR: string = process.env.GHOST_AUTHOR ? process.env.GHOST_AUTHOR as string : ""
+const OPENAI_API_KEY: string = process.env.OPENAI_API_KEY
+  ? (process.env.OPENAI_API_KEY as string)
+  : "";
+const OPENAI_MODEL: string = process.env.OPENAI_MODEL
+  ? (process.env.OPENAI_MODEL as string)
+  : "gpt-3.5-turbo";
+const GHOST_ADMIN_API_KEY: string = process.env.GHOST_ADMIN_API_KEY
+  ? (process.env.GHOST_ADMIN_API_KEY as string)
+  : "";
+const GHOST_URL: string = process.env.GHOST_URL
+  ? (process.env.GHOST_URL as string)
+  : "";
+const GHOST_AUTHOR: string = process.env.GHOST_AUTHOR
+  ? (process.env.GHOST_AUTHOR as string)
+  : "";
 
 if (!OPENAI_API_KEY) {
-    console.log("No OPENAI_API_KEY provided. Exiting.");
-    exit(1);
+  console.log("No OPENAI_API_KEY provided. Exiting.");
+  exit(1);
 }
 
 if (!GHOST_ADMIN_API_KEY) {
-    console.log("No GHOST_ADMIN_API_KEY provided. Exiting.");
-    exit(1);
+  console.log("No GHOST_ADMIN_API_KEY provided. Exiting.");
+  exit(1);
 }
 
 if (!GHOST_URL) {
-    console.log("No GHOST_URL provided. Exiting.");
-    exit(1);
+  console.log("No GHOST_URL provided. Exiting.");
+  exit(1);
 }
 
 if (!GHOST_AUTHOR) {
-    console.log("No GHOST_AUTHOR provided. Exiting.");
-    exit(1);
+  console.log("No GHOST_AUTHOR provided. Exiting.");
+  exit(1);
 }
 
-const configuration = new Configuration({
+const openai = new OpenAIApi(
+  new Configuration({
     apiKey: OPENAI_API_KEY,
-});
-
-const openai = new OpenAIApi(configuration);
+  })
+);
 
 // Configure the client
 const ghost = new GhostAdminAPI({
-    url: `${GHOST_URL}`,
-    key: `${GHOST_ADMIN_API_KEY}`,
-    version: 'v4.0',
+  url: `${GHOST_URL}`,
+  key: `${GHOST_ADMIN_API_KEY}`,
+  version: "v4.0",
 });
 
 function getPrompt(trending: string): string {
-    return `write a blog post using the topic "${trending}". It should be 2000 words and be written in the style of a blog post. The tone can be similar to a news article, but it is a blog post. The output format of the blog post should be in markdown format. Do not include images. Maintain an upper word count of 2000 words but do not output the word count of each section. Prefer to finish the blog post before your token limit is reached`;
+  return `write a blog post using the topic "${trending}". It should be 2000 words and be written in the style of a blog post. The tone can be similar to a news article, but it is a blog post. The output format of the blog post should be in markdown format. Do not include images. Maintain an upper word count of 2000 words but do not output the word count of each section. Prefer to finish the blog post before your token limit is reached`;
 }
 
 async function getTrending(): Promise<string> {
-    return new Promise<string>(async (resolve) => {
-        // Setup
-        const browser = await chromium.launch();
-        const context = await browser.newContext();
-        const page = await context.newPage();
+  return new Promise<string>(async (resolve) => {
+    // Setup
+    const browser = await chromium.launch();
+    const context = await browser.newContext();
+    const page = await context.newPage();
 
-        try {
-            await page.goto('https://trends.google.com/trends/trendingsearches/daily?geo=US&hl=en-US', {
-                waitUntil: 'domcontentloaded'
-            });
-        } catch (err) {
-            console.log(err);
+    try {
+      await page.goto(
+        "https://trends.google.com/trends/trendingsearches/daily?geo=US&hl=en-US",
+        {
+          waitUntil: "domcontentloaded",
         }
+      );
+    } catch (err) {
+      console.log(err);
+    }
 
-        var number_one_trending: string = await page.locator(`xpath=//feed-item[@index='1']//a`).nth(0).innerText();
+    var number_one_trending: string = await page
+      .locator(`xpath=//feed-item[@index='1']//a`)
+      .nth(0)
+      .innerText();
 
-        // Teardown
-        await context.close();
-        await browser.close();
+    // Teardown
+    await context.close();
+    await browser.close();
 
-        resolve(number_one_trending);
-    })
+    resolve(number_one_trending);
+  });
 }
 
 (async () => {
-    const trending = await getTrending();
+  const trending = await getTrending();
 
-    console.log(`Got value for trending: "${trending}"`)
-    console.log(`Generating blogpost...`)
+  console.log(`Got value for trending: "${trending}"`);
+  console.log(`Generating blogpost...`);
 
-    const chatCompletion = await openai.createChatCompletion({
-        model: OPENAI_MODEL,
-        messages: [{ role: "user", content: getPrompt(trending) }],
-    });
+  const chatCompletion = await openai.createChatCompletion({
+    model: OPENAI_MODEL,
+    messages: [{ role: "user", content: getPrompt(trending) }],
+  });
 
-    if (!chatCompletion.data.choices[0].message) {
-        console.log("Error generating blogpost. Exiting.")
-        exit(1)
-    }
+  if (!chatCompletion.data.choices[0].message) {
+    console.log("Error generating blogpost. Exiting.");
+    exit(1);
+  }
 
-    var blogpost: string = chatCompletion.data.choices[0].message.content as string
-    console.log(blogpost)
+  var blogpost: string = chatCompletion.data.choices[0].message
+    .content as string;
+  console.log(blogpost);
 
-    const regex = /#(.*)\n*/
-    const match = blogpost.match(regex)
-    var title = (crypto.randomUUID() as string);
+  const regex = /#(.*)\n*/;
+  const match = blogpost.match(regex);
+  var title = crypto.randomUUID() as string;
 
-    if (match) {
-        title = match[1];
-        console.log(`Parsed title: ${title}`)
-        blogpost = blogpost.replace(regex, "")
-    } else {
-        console.log("Failed to match markdown title. Using default title.")
-    }
+  if (match) {
+    title = match[1];
+    console.log(`Parsed title: ${title}`);
+    blogpost = blogpost.replace(regex, "");
+  } else {
+    console.log("Failed to match markdown title. Using default title.");
+  }
 
-    console.log("Publishing blogpost...")
+  console.log("Publishing blogpost...");
 
-    // Make an authenticated request
-    var ghostRes = await ghost.posts.add({
-        title,
-        authors: [GHOST_AUTHOR],
-        tags: ["ChatGPT"],
-        status: "published",
-        mobiledoc: JSON.stringify({
-            version: "0.3.1",
-            atoms: [],
-            cards: [
-                [
-                    "markdown",
-                    {
-                        markdown: blogpost + "\n\n_**DISCLAIMER**: This blog post was generated by ChatGPT_"
-                    }
-                ]
-            ],
-            markups: [],
-            sections: [
-                [10, 0],
-                [
-                    1,
-                    "p",
-                    []
-                ]
-            ],
-            ghostVersion: "4.0"
-        })
-    })
-})()
+  // Make an authenticated request
+  var ghostRes = await ghost.posts.add({
+    title,
+    authors: [GHOST_AUTHOR],
+    tags: ["ChatGPT"],
+    status: "published",
+    mobiledoc: JSON.stringify({
+      version: "0.3.1",
+      atoms: [],
+      cards: [
+        [
+          "markdown",
+          {
+            markdown:
+              blogpost +
+              "\n\n_**DISCLAIMER**: This blog post was generated by ChatGPT_",
+          },
+        ],
+      ],
+      markups: [],
+      sections: [
+        [10, 0],
+        [1, "p", []],
+      ],
+      ghostVersion: "4.0",
+    }),
+  });
+})();
