@@ -1,5 +1,5 @@
 import { Configuration, OpenAIApi } from "openai";
-import { chromium } from "playwright";
+import { chromium, Locator } from "playwright";
 import { exit } from "process";
 import crypto from "crypto";
 import GhostAdminAPI from "@tryghost/admin-api";
@@ -76,8 +76,14 @@ async function getTrending(): Promise<string> {
     }
 
     var number_one_trending: string = await page
-      .locator(`xpath=//feed-item[@index='1']//a`)
+      .locator("table")
+      .first()
+      .locator("tbody")
+      .nth(1)
+      .getByRole("row")
       .nth(0)
+      .locator("td")
+      .nth(1)
       .innerText();
 
     // Teardown
