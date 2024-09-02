@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/playwright:v1.35.0-jammy@sha256:7f3d0d31d15183c008caf7057b084364d7731a2090c2132f5dd733f55342f7b7
+FROM mcr.microsoft.com/playwright:v1.35.1@sha256:057986cae15308427a7ab0661126638761367bee54675462fb8467d6f4e357e4
 
 WORKDIR /app
 COPY package.json package-lock.json tsconfig.json decs.d.ts src/ ./
