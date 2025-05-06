@@ -3,14 +3,12 @@
 This is a script that generates a markdown formatted post written in the style of
 a blog. It writes about a trending topic scraped from [Google Trends](https://trends.google.com/trends/trendingsearches/daily?geo=US&hl=en-US).
 
-The generated blogpost is uploaded to my blog, [a mostly ai blog](https://josh.sizer.dev)
-
 ## How
 
 The script works by scraping the Google Trends website using [Playwright](https://playwright.dev).
 After it finds the today's trending topic, the script calls out to the [OpenAI API](https://platform.openai.com/docs/introduction),
 prompting ChatGPT to generate a markdown formatted blogpost. Finally, it uploads
-the generated blogpost to my self-hosted instance of [Ghost](https://ghost.org)
+the generated blogpost to an instance of [Ghost](https://ghost.org)
 via the Ghost Admin API.
 
 ## Deployment
